@@ -1,11 +1,16 @@
 package main
 
 import (
-    "os"
+    "fmt"
+    "log"
     "time"
-    "github.com/codegangsta/cli"
     "gopkg.in/mgo.v2"
     "gopkg.in/mgo.v2/bson"
+)
+
+const (
+    Host = "localhost"
+    Database = "test_go"
 )
 
 type Todos struct {
@@ -14,14 +19,28 @@ type Todos struct {
     Done bool
 }
 
-
 func main() {
-    app := cli.NewApp()
-    app.Name = "boom"
-    app.Usage = "make an explosive entrance"
-    app.Action = func(c *cli.Context) {
-        println("Hello", c.Args()[0])
+    session, err := mgo.Dial(Host)
+    if err != nil {
+        panic(err)
     }
 
-    app.Run(os.Args)
+    defer session.Close()
+
+    c := session.DB(Database).C("test_collection")
+    err = c.Insert(&Todos{"Take out trash", time.Now(), false},
+                   &Todos{"Clean up room", time.Now(), false})
+
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    result := Todos{}
+    err = c.Find(bson.M{}).One(&result)
+
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println("Name:", result)
 }
